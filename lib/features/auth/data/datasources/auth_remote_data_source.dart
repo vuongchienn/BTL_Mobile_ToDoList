@@ -8,36 +8,19 @@ class AuthRemoteDataSource {
 
   /// POST /auth/login
   /// Laravel trả về: { status: true, message: 'Login successful', data: '<token>' }
- Future<void> login(String email, String password) async {
-  try {
+ Future<Map<String, dynamic>> login(String email, String password) async {
     final response = await dio.post('/auth/login', data: {
       'email': email,
       'password': password,
     });
 
-    print("Login response: ${response.data}");
-
-    // Token Laravel trả nằm ở response.data['data']
-    String? token;
-    if (response.data is Map<String, dynamic>) {
-      token = response.data['data']?.toString();
+    if (response.statusCode == 200) {
+      return response.data; // nên chứa {'token': '...'}
+    } else {
+      throw Exception('Đăng nhập thất bại: ${response.statusCode}');
     }
-
-    if (token == null || token.isEmpty) {
-      throw Exception("Token null hoặc rỗng");
-    }
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('token', token);
-
-    print("Token lưu thành công: $token");
-  } catch (e) {
-    print("Login error: $e");
-    throw Exception("Lỗi khi đăng nhập: $e");
   }
-}
-  
- Future<Map<String, dynamic>> register({
+  Future<Map<String, dynamic>> register({
     required String email,
     required String password,
     required String passwordConfirmation,
@@ -89,7 +72,6 @@ class AuthRemoteDataSource {
     // Xoá token khỏi local
     await prefs.remove('token');
     dio.options.headers.remove('Authorization');
-
     print('👋 Đã đăng xuất');
   }
 }

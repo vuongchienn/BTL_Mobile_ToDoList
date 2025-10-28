@@ -8,7 +8,10 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl(this.remote);
 
   @override
-  Future<void> login(String email, String password) => remote.login(email, password);
+ Future<Map<String, dynamic>> login(String email, String password) async {
+    final response = await remote.login(email, password);
+    return response;
+  }
 
   @override
   Future<User> getProfile() async {

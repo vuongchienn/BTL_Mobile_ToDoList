@@ -4,6 +4,9 @@ import '../../data/datasources/auth_remote_data_source.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import 'package:dio/dio.dart';
 
+import 'package:go_router/go_router.dart';
+import 'package:btl_mobile_todolist/core/routing/app_routes.dart';
+
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
 
@@ -49,12 +52,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
     if (result['data'] == 'Register successful' ||
         result['message'] == 201) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Đăng ký thành công!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+       context.go(AppRoutes.successRegister);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -229,21 +227,27 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
 
                 const SizedBox(height: 24),
-                Center(
-                  child: RichText(
-                    text: const TextSpan(
-                      text: "Bạn đã có tài khoản? ",
-                      style: TextStyle(color: Colors.black),
-                      children: [
-                        TextSpan(
-                          text: "Đăng nhập",
+                 Center(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text(
+                        "Bạn đã có tài khoản? ",
+                        style: TextStyle(color: Colors.black),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          context.go(AppRoutes.login);
+                        },
+                        child: const Text(
+                          "Đăng nhập",
                           style: TextStyle(
                             color: Color(0xFFEF6820),
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ],
-                    ),
+                       ),
+                    ],
                   ),
                 ),
               ],
