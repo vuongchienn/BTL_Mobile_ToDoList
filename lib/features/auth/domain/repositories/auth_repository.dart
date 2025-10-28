@@ -10,4 +10,16 @@ abstract class AuthRepository {
   /// Logout and clear token
   Future<void> logout();
   Future<Map<String, dynamic>> register(String email, String password,String passwordConfirmation);
+   Future<Map<String, dynamic>> sendOtp(String email);
+
+  /// Xác thực OTP
+  Future<Map<String, dynamic>> verifyOtp(String email, String otp);
+
+  /// Đặt lại mật khẩu
+  Future<Map<String, dynamic>> resetPassword({
+    required String email,
+    required String otp,
+    required String password,
+    required String passwordConfirmation,
+  });
 }

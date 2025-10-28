@@ -31,4 +31,26 @@ class AuthRepositoryImpl implements AuthRepository {
         passwordConfirmation: passwordConfirmation,
       );
     }
+
+   Future<Map<String, dynamic>> sendOtp(String email) {
+    return remote.sendOtp(email);
+  }
+
+  Future<Map<String, dynamic>> verifyOtp(String email, String otp) {
+    return remote.verifyOtp(email, otp);
+  }
+
+  Future<Map<String, dynamic>> resetPassword({
+    required String email,
+    required String otp,
+    required String password,
+    required String passwordConfirmation,
+  }) {
+    return remote.resetPassword(
+      email: email,
+      otp: otp,
+      password: password,
+      passwordConfirmation: passwordConfirmation,
+    );
+  }
 }

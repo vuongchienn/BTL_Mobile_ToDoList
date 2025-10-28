@@ -74,4 +74,32 @@ class AuthRemoteDataSource {
     dio.options.headers.remove('Authorization');
     print('👋 Đã đăng xuất');
   }
+
+  Future<Map<String, dynamic>> sendOtp(String email) async {
+    final response = await dio.post('/auth/send-otp', data: {'email': email});
+    return response.data;
+  }
+
+   // Xác thực OTP
+  Future<Map<String, dynamic>> verifyOtp(String email, String otp) async {
+    final response =
+        await dio.post('/auth/verify-otp', data: {'email': email, 'otp': otp});
+    return response.data;
+  }
+
+  // Đặt lại mật khẩu
+  Future<Map<String, dynamic>> resetPassword({
+    required String email,
+    required String otp,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    final response = await dio.post('/auth/reset-password', data: {
+      'email': email,
+      'otp': otp,
+      'password': password,
+      'password_confirmation': passwordConfirmation,
+    });
+    return response.data;
+  }
 }
