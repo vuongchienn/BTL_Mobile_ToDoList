@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../data/datasources/auth_remote_data_source.dart'; // 👈 import lớp bạn đã có
+import '../../data/datasources/auth_remote_data_source.dart'; 
+import 'package:btl_mobile_todolist/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:btl_mobile_todolist/features/auth/domain/usecases/login_user.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -18,7 +20,7 @@ class _LoginPageState extends State<LoginPage> {
   bool isLoading = false;
   bool obscurePassword = true;
 
-  late final AuthRemoteDataSource authRemoteDataSource;
+  late final LoginUseCase loginUseCase;
 
   @override
   void initState() {
@@ -32,7 +34,9 @@ class _LoginPageState extends State<LoginPage> {
       receiveTimeout: const Duration(seconds: 10),
     ));
 
-    authRemoteDataSource = AuthRemoteDataSource(dio);
+    final remoteDataSource = AuthRemoteDataSource(dio);
+    final repository = AuthRepositoryImpl(remoteDataSource);
+    loginUseCase = LoginUseCase(repository);
   }
 
   void _onEmailChanged() {
@@ -56,7 +60,7 @@ class _LoginPageState extends State<LoginPage> {
   setState(() => isLoading = true);
 
   try {
-    await authRemoteDataSource.login(email, password);
+    await loginUseCase(email, password);
 
     if (!mounted) return;
 

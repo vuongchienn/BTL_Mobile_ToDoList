@@ -37,6 +37,22 @@ class AuthRemoteDataSource {
   }
 }
   
+ Future<Map<String, dynamic>> register({
+    required String email,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    final response = await dio.post(
+      '/auth/register',
+      data: {
+        'email': email,
+        'password': password,
+        'password_confirmation': passwordConfirmation,
+      },
+    );
+
+    return response.data;
+  }
   /// Lấy profile user (nếu bạn chưa có API /auth/user thì tạm bỏ hoặc test sau)
  Future<UserModel> getProfile() async {
   final prefs = await SharedPreferences.getInstance();

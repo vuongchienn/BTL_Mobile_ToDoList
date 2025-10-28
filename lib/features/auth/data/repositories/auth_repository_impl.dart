@@ -18,4 +18,14 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> logout() => remote.logout();
+
+  @override
+    Future<Map<String, dynamic>> register(
+        String email, String password, String passwordConfirmation) {
+      return remote.register(
+        email: email,
+        password: password,
+        passwordConfirmation: passwordConfirmation,
+      );
+    }
 }

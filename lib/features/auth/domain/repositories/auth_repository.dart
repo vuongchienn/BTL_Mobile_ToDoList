@@ -9,4 +9,5 @@ abstract class AuthRepository {
 
   /// Logout and clear token
   Future<void> logout();
+  Future<Map<String, dynamic>> register(String email, String password,String passwordConfirmation);
 }
