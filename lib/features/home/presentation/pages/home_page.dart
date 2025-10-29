@@ -9,6 +9,13 @@ import '../../../task_groups/domain/usecases/update_task_group_usecase.dart';
 import '../../../task_groups/domain/usecases/delete_task_group_usecase.dart';
 import '../../../task_groups/data/models/task_group_model.dart';
 
+import 'package:btl_mobile_todolist/features/tags/data/datasources/tag_remote_data_source.dart';
+import 'package:btl_mobile_todolist/features/tags/data/repositories/tag_repository_impl.dart';
+import '../../../tags/domain/usecases/create_tag_usecase.dart';
+import '../../../tags/domain/usecases/update_tag_usecase.dart';
+import '../../../tags/domain/usecases/delete_tag_usecase.dart';
+import '../../../tags/data/models/tag_model.dart';
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -23,6 +30,14 @@ class _HomePageState extends State<HomePage> {
   CreateTaskGroupUseCase? _createTaskGroupUseCase;
   UpdateTaskGroupUseCase? _updateTaskGroupUseCase;
   DeleteTaskGroupUseCase? _deleteTaskGroupUseCase;
+
+  List<TagModel> _tags = [];
+  TagRemoteDataSource? _tagRemoteDataSource;
+  TagRepositoryImpl? _tagRepository;
+  CreateTagUseCase? _createTagUseCase;
+  UpdateTagUseCase? _updateTagUseCase;
+  DeleteTagUseCase? _deleteTagUseCase;
+
 
   List<TaskGroupModel> _taskGroups = [];
   bool isLoading = true;
@@ -52,6 +67,13 @@ class _HomePageState extends State<HomePage> {
     _updateTaskGroupUseCase = UpdateTaskGroupUseCase(_repository!);
     _deleteTaskGroupUseCase = DeleteTaskGroupUseCase(_repository!);
 
+    _tagRemoteDataSource = TagRemoteDataSource(_dio!);
+    _tagRepository = TagRepositoryImpl(_tagRemoteDataSource!);
+    _createTagUseCase = CreateTagUseCase(_tagRepository!);
+    _updateTagUseCase = UpdateTagUseCase(_tagRepository!);
+    _deleteTagUseCase = DeleteTagUseCase(_tagRepository!);
+
+    await _loadTags();
     await _loadTaskGroups();
     setState(() => isLoading = false);
 
@@ -224,6 +246,137 @@ class _HomePageState extends State<HomePage> {
       },
     );
   }
+
+
+
+
+  Future<void> _loadTags() async {
+    try {
+      final tags = await _tagRemoteDataSource!.getTags();
+      setState(() => _tags = tags);
+    } catch (e) {
+      print('Lỗi khi load tags: $e');
+    }
+  }
+
+  Future<void> _createTag(String name) async {
+    if (name.isEmpty || _createTagUseCase == null) return;
+    try {
+      final tag = await _createTagUseCase!(name);
+      await _loadTags();
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Tạo thẻ "${tag.name}" thành công')));
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+    }
+  }
+
+  Future<void> _deleteTag(int id) async {
+    try {
+      await _deleteTagUseCase!(id);
+      await _loadTags();
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Xóa thẻ thành công')));
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Lỗi xóa thẻ: $e')));
+    }
+  }
+
+  Future<void> _updateTag(int id, String newName) async {
+    try {
+      await _updateTagUseCase!(id, newName);
+      await _loadTags();
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Cập nhật thẻ thành công')));
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Lỗi cập nhật thẻ: $e')));
+    }
+  }
+
+
+  Future<void> _showCreateTagDialog() async {
+    final controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Tạo thẻ mới'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(hintText: 'Nhập tên thẻ'),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Huỷ')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF6820)),
+            onPressed: () async {
+              await _createTag(controller.text.trim());
+              Navigator.pop(context);
+            },
+            child: const Text('Tạo'),
+          )
+        ],
+      ),
+    );
+  }
+
+  void _showTagOptions(TagModel tag) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit, color: Color(0xFFEF6820)),
+              title: const Text('Đổi tên'),
+              onTap: () {
+                Navigator.pop(context);
+                _showUpdateTagDialog(tag);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete, color: Colors.red),
+              title: const Text('Xóa'),
+              onTap: () {
+                Navigator.pop(context);
+                _deleteTag(tag.id);
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showUpdateTagDialog(TagModel tag) {
+    final controller = TextEditingController(text: tag.name);
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cập nhật thẻ'),
+        content: TextField(controller: controller),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Huỷ')),
+          ElevatedButton(
+            onPressed: () async {
+              await _updateTag(tag.id, controller.text.trim());
+              Navigator.pop(context);
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF6820)),
+            child: const Text('Cập nhật'),
+          )
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final accent = const Color(0xFFEF6820);
@@ -311,19 +464,31 @@ class _HomePageState extends State<HomePage> {
                           .toList(),
                     ),
                   const SizedBox(height: 28),
-                  const Text('Thẻ',
-                      style: TextStyle(
-                          fontSize: 16, fontWeight: FontWeight.bold)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Thẻ',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      GestureDetector(
+                        onTap: _showCreateTagDialog,
+                        child: const Icon(Icons.add, color: Color(0xFFEF6820)),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 12),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: [
-                      _buildTag('Cá nhân', accent),
-                      _buildTag('Công việc', accent),
-                      _buildAddTag(accent),
-                    ],
+                    children: _tags.isEmpty
+                        ? [const Text('Chưa có thẻ nào 😄', style: TextStyle(color: Colors.grey))]
+                        : _tags.map(
+                          (tag) => GestureDetector(
+                        onTap: () => _showTagOptions(tag),
+                        child: _buildTag(tag.name, accent),
+                      ),
+                    ).toList(),
                   ),
+
                 ],
               ),
             ),
@@ -364,7 +529,6 @@ class _HomePageState extends State<HomePage> {
           height: 50,
         ),
         const SizedBox(height: 12),
-
         Row(
           children: const [
             Expanded(
@@ -389,7 +553,6 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
         const SizedBox(height: 12),
-
         Row(
           children: const [
             Expanded(
@@ -412,7 +575,6 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
         const SizedBox(height: 12),
-
         Row(
           children: const [
             Expanded(
@@ -435,7 +597,6 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
         const SizedBox(height: 12),
-
         const HomeSection(
           title: 'Lặp lại',
           count: 0,
