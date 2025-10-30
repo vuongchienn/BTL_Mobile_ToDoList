@@ -1,3 +1,5 @@
+import 'package:btl_mobile_todolist/core/routing/app_routes.dart';
+import 'package:go_router/go_router.dart';
 import 'package:btl_mobile_todolist/core/utils/auth_storage.dart';
 import 'package:flutter/material.dart';
 import '../widgets/home_section.dart';
@@ -554,8 +556,8 @@ class _HomePageState extends State<HomePage> {
         ),
         const SizedBox(height: 12),
         Row(
-          children: const [
-            Expanded(
+          children: [
+            const Expanded(
               child: HomeSection(
                 title: 'Tất cả',
                 count: 0,
@@ -563,13 +565,16 @@ class _HomePageState extends State<HomePage> {
                 height: 70,
               ),
             ),
-            SizedBox(width: 12),
+            const SizedBox(width: 12),
             Expanded(
-              child: HomeSection(
-                title: 'Ghi chú',
-                count: 0,
-                icon: Icons.note_alt_outlined,
-                height: 70,
+              child: GestureDetector(
+                onTap: () => context.go(AppRoutes.note),
+                child: const HomeSection(
+                  title: 'Ghi chú',
+                  count: 0,
+                  icon: Icons.note_alt_outlined,
+                  height: 70,
+                ),
               ),
             ),
           ],

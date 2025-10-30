@@ -7,4 +7,5 @@ class AppRoutes {
   static const verifyOtp = '/verify-otp';
   static const resetPassword = '/reset-password';
   static const resetPasswordSuccess = '/reset-password-success';
+     static const String note = '/note';
 }
