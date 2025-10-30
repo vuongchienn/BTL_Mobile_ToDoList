@@ -1,8 +1,5 @@
-import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'go_router_refresh_change.dart';
 
-import '../utils/auth_storage.dart';
 import 'package:btl_mobile_todolist/core/routing/app_routes.dart';
 import '/features/auth/presentation/pages/login_page.dart';
 import '/features/auth/presentation/pages/register_page.dart';
@@ -13,7 +10,10 @@ import '/features/auth/presentation/pages/reset_password_page.dart';
 import '/features/auth/presentation/pages/reset_password_success_page.dart';
 import '/features/home/presentation/pages/home_page.dart';
 import '/features/notes/presentation/pages/note_page.dart';
-
+import '/features/tasks/presentation/pages/all_tasks_page.dart';
+import '/features/tasks/presentation/pages/today_page.dart';
+import '/features/tasks/presentation/pages/next3days_page.dart';
+import '/features/tasks/presentation/pages/next7days_page.dart';
 class AppGoRouter {
   static final GoRouter appRouter = GoRouter(
     initialLocation: AppRoutes.forgotPassword,
@@ -43,6 +43,22 @@ class AppGoRouter {
         GoRoute(
         path: AppRoutes.resetPasswordSuccess,
         builder: (context, state) => const ResetPasswordSuccessPage(),
+      ),
+        GoRoute(
+          path: AppRoutes.today,
+          builder: (context, state) => const TodayPage(),
+      ),
+      GoRoute(
+          path: AppRoutes.all,
+          builder: (context, state) => const AllTasksPage(),
+      ),
+      GoRoute(
+          path: AppRoutes.next3Days,
+          builder: (context, state) => const Next3DaysPage(),
+      ),
+      GoRoute(
+          path: AppRoutes.next7Days,
+          builder: (context, state) => const Next7DaysPage(),
       ),
     ],
 

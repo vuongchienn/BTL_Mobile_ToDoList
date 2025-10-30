@@ -521,7 +521,9 @@ class _HomePageState extends State<HomePage> {
   Widget _buildTaskSection(Color accent) {
     return Column(
       children: [
-        const HomeSection(
+        GestureDetector(
+          onTap: () => context.go(AppRoutes.today),
+          child: const HomeSection(
           title: 'Hôm nay',
           count: 0,
           icon: Icons.check_circle_outline,
@@ -530,11 +532,14 @@ class _HomePageState extends State<HomePage> {
           fullWidth: true,
           height: 50,
         ),
+      ),
         const SizedBox(height: 12),
         Row(
-          children: const [
+          children: [
             Expanded(
-              child: HomeSection(
+            child: GestureDetector(
+              onTap: () => context.go(AppRoutes.next3Days),
+              child: const HomeSection(
                 title: '3 ngày tới',
                 count: 0,
                 icon: Icons.calendar_today_outlined,
@@ -543,28 +548,35 @@ class _HomePageState extends State<HomePage> {
                 height: 70,
               ),
             ),
+          ),
             SizedBox(width: 12),
             Expanded(
-              child: HomeSection(
+          child: GestureDetector(
+              onTap: () => context.go(AppRoutes.next7Days),
+              child: const HomeSection(
                 title: '7 ngày tới',
                 count: 0,
                 icon: Icons.date_range_outlined,
                 height: 70,
               ),
             ),
+          ),
           ],
         ),
         const SizedBox(height: 12),
         Row(
           children: [
-            const Expanded(
-              child: HomeSection(
+              Expanded(
+            child: GestureDetector(
+              onTap: () => context.go(AppRoutes.all),
+              child: const HomeSection(
                 title: 'Tất cả',
                 count: 0,
                 icon: Icons.list_alt_outlined,
                 height: 70,
               ),
             ),
+          ),
             const SizedBox(width: 12),
             Expanded(
               child: GestureDetector(
