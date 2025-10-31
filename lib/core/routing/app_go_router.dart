@@ -14,6 +14,8 @@ import '/features/tasks/presentation/pages/all_tasks_page.dart';
 import '/features/tasks/presentation/pages/today_page.dart';
 import '/features/tasks/presentation/pages/next3days_page.dart';
 import '/features/tasks/presentation/pages/next7days_page.dart';
+import '/features/tasks/presentation/pages/completed_tasks_page.dart';
+import '/features/tasks/presentation/pages/deleted_tasks_page.dart';
 class AppGoRouter {
   static final GoRouter appRouter = GoRouter(
     initialLocation: AppRoutes.forgotPassword,
@@ -60,6 +62,14 @@ class AppGoRouter {
           path: AppRoutes.next7Days,
           builder: (context, state) => const Next7DaysPage(),
       ),
+          GoRoute(
+      path: AppRoutes.completedTasks,
+      builder: (context, state) => const CompletedTasksPage(),
+    ),
+    GoRoute(
+      path: AppRoutes.deletedTasks,
+      builder: (context, state) => const DeletedTasksPage(),
+    ),
     ],
 
   );

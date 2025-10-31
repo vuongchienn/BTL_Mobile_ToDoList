@@ -11,6 +11,15 @@ class TaskRepositoryImpl implements TaskRepository {
   Future<Map<String, List<TaskEntity>>> getTasksByType(String type) {
     return remoteDataSource.getTasks(type);
   }
+    @override
+  Future<Map<String, List<TaskEntity>>> getCompletedTasks() {
+    return remoteDataSource.getCompletedTasks();
+  }
+
+  @override
+  Future<Map<String, List<TaskEntity>>> getDeletedTasks() {
+    return remoteDataSource.getDeletedTasks();
+  }
   @override
   Future<TaskEntity?> createTask({
     required String title,

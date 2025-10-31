@@ -24,6 +24,41 @@ class TaskRemoteDataSource {
 
     return groupedTasks;
   }
+  // Thêm phương thức lấy task đã hoàn thành
+  Future<Map<String, List<TaskEntity>>> getCompletedTasks() async {
+    final response = await dio.get('/task/completed');
+
+    final raw = response.data['data'] as Map<String, dynamic>;
+
+    final Map<String, List<TaskEntity>> groupedTasks = {};
+
+    raw.forEach((key, value) {
+      if (key == 'total_tasks') return;
+      groupedTasks[key] = (value as List)
+          .map((e) => TaskEntity.fromJson(e as Map<String, dynamic>))
+          .toList();
+    });
+
+    return groupedTasks;
+  }
+
+// Thêm phương thức lấy task đã bị xóa
+  Future<Map<String, List<TaskEntity>>> getDeletedTasks() async {
+    final response = await dio.get('/task/deleted');
+
+    final raw = response.data['data'] as Map<String, dynamic>;
+
+    final Map<String, List<TaskEntity>> groupedTasks = {};
+
+    raw.forEach((key, value) {
+      if (key == 'total_tasks') return;
+      groupedTasks[key] = (value as List)
+          .map((e) => TaskEntity.fromJson(e as Map<String, dynamic>))
+          .toList();
+    });
+
+    return groupedTasks;
+  }
   // Thêm phương thức tạo task
   Future<TaskEntity?> createTask({
     required String title,

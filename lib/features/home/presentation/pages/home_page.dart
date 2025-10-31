@@ -1199,22 +1199,28 @@ Positioned(
         ),
         const SizedBox(height: 12),
         Row(
-          children: const [
+          children: [
             Expanded(
-              child: HomeSection(
-                title: 'Hoàn thành',
-                count: 0,
-                icon: Icons.check_circle_outline,
-                height: 70,
-              ),
+                child: GestureDetector(
+                  onTap: () => context.go(AppRoutes.completedTasks), 
+                  child: const HomeSection(
+                    title: 'Hoàn thành',
+                    count: 0,
+                    icon: Icons.check_circle_outline,
+                    height: 70,
+                  ),
+                ),
             ),
             SizedBox(width: 12),
             Expanded(
-              child: HomeSection(
-                title: 'Thùng rác',
-                count: 0,
-                icon: Icons.delete_outline,
-                height: 70,
+              child: GestureDetector(
+                onTap: () => context.go(AppRoutes.deletedTasks), // Điều hướng đến DeletedTasksPage
+                child: const HomeSection(
+                  title: 'Thùng rác',
+                  count: 0,
+                  icon: Icons.delete_outline,
+                  height: 70,
+                ),
               ),
             ),
           ],

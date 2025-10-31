@@ -60,7 +60,11 @@ class _TaskListPageState extends State<TaskListPage> {
 
   Future<void> _fetchTasks() async {
     try {
-      final tasks = await _getTasksUseCase.call(widget.type);
+      final tasks = widget.type == 'completed'
+          ? await _getTasksUseCase.getCompletedTasks()
+          : widget.type == 'deleted'
+              ? await _getTasksUseCase.getDeletedTasks()
+              : await _getTasksUseCase.call(widget.type);
       debugPrint('Fetched tasks: $tasks');
       setState(() {
         _groupedTasks = tasks;
@@ -162,6 +166,7 @@ class _TaskListPageState extends State<TaskListPage> {
                                 isImportant: task.isImportant,
                                 isRepeating: task.isRepeating,
                                 tags: task.tags,
+                                isDeleted: widget.type == 'deleted', // Thêm flag để nhận diện task đã xóa
                               )).toList(),
                           const SizedBox(height: 16),
                         ],

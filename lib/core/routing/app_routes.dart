@@ -12,4 +12,6 @@ class AppRoutes {
   static const all = '/all';
   static const next3Days = '/next3days';
   static const next7Days = '/next7days';
+  static const completedTasks = '/completedTasks';
+  static const deletedTasks = '/deletedTasks';
 }

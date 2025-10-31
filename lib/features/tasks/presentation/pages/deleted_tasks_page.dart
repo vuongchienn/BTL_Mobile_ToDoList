@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'task_list_page.dart';
 
-class Next3DaysPage extends StatelessWidget {
-  const Next3DaysPage({super.key});
+class DeletedTasksPage extends StatelessWidget {
+  const DeletedTasksPage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return const TaskListPage(
-      title: '3 ngày tới',
-      type: 'three_days',
+      title: 'Thùng rác',
+      type: 'deleted',
     );
   }
 }
