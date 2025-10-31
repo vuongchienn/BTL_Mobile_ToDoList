@@ -75,7 +75,7 @@ class _LoginPageState extends State<LoginPage> {
     // Gọi usecase (đảm bảo usecase trả về token hoặc user data)
     final result = await loginUseCase(email, password);
     // 🔐 Nếu loginUseCase trả về token:
-    if (result != null && result['data'] != null) {
+    if (result['data'] != null) {
       await AuthStorage.saveToken(result['data']); // lưu token
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

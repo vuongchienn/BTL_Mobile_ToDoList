@@ -22,12 +22,12 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   Future<void> _sendOtp() async {
   
   final dio = Dio(BaseOptions(baseUrl: 'http://127.0.0.1:8000/api'));
-  final _sendOtpUseCase = SendOtpUseCase(AuthRepositoryImpl(AuthRemoteDataSource(dio)));
+  final sendOtpUseCase = SendOtpUseCase(AuthRepositoryImpl(AuthRemoteDataSource(dio)));
     if (isLoading) return;
     setState(() => isLoading = true);
 
     try {
-      final result = await _sendOtpUseCase(emailController.text.trim());
+      final result = await sendOtpUseCase(emailController.text.trim());
       if (result['message'] == 'OTP đã được gửi qua email.') {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

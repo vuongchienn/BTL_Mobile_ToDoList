@@ -32,14 +32,17 @@ class AuthRepositoryImpl implements AuthRepository {
       );
     }
 
-   Future<Map<String, dynamic>> sendOtp(String email) {
+   @override
+  Future<Map<String, dynamic>> sendOtp(String email) {
     return remote.sendOtp(email);
   }
 
+  @override
   Future<Map<String, dynamic>> verifyOtp(String email, String otp) {
     return remote.verifyOtp(email, otp);
   }
 
+  @override
   Future<Map<String, dynamic>> resetPassword({
     required String email,
     required String otp,

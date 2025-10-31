@@ -24,4 +24,54 @@ class TaskRemoteDataSource {
 
     return groupedTasks;
   }
+  // Thêm phương thức tạo task
+  Future<TaskEntity?> createTask({
+    required String title,
+    required String description,
+    required int groupId,
+    required DateTime dueDate,
+    required String time, // <--- đổi từ TimeOfDay sang String
+    required int dueDateSelect,
+    required int repeatType,
+    int? repeatOption,
+    int? repeatInterval,
+    DateTime? repeatDueDate,
+    List<int>? tagIds,
+  }) async {
+    try {
+      final dueDateTime = DateTime(
+        dueDate.year,
+        dueDate.month,
+        dueDate.day,
+      );
+
+
+      final response = await dio.post(
+        '/task/create',
+        data: {
+          'title': title,
+          'description': description,
+          'group_id': groupId,
+          'due_date_select': dueDateSelect,
+          'due_date': dueDateSelect == 4 ? dueDateTime.toIso8601String() : null,
+          'time': time, // gửi trực tiếp chuỗi HH:mm
+          'repeat_type': repeatType,
+          'repeat_option': repeatOption,
+          'repeat_interval': repeatInterval,
+          'repeat_due_date': repeatDueDate?.toIso8601String(),
+          'tag_ids': tagIds,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final taskData = response.data['data'] as Map<String, dynamic>;
+        
+        return TaskEntity.fromJson(taskData);
+      }
+      return null;
+    } catch (e) {
+      print('Lỗi khi tạo task: $e');
+      return null;
+    }
+  }
 }

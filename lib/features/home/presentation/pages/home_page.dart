@@ -4,6 +4,7 @@ import 'package:btl_mobile_todolist/core/utils/auth_storage.dart';
 import 'package:flutter/material.dart';
 import '../widgets/home_section.dart';
 import 'package:dio/dio.dart';
+import 'package:intl/intl.dart';
 import 'package:btl_mobile_todolist/features/task_groups/data/datasources/task_group_remote_data_source.dart';
 import 'package:btl_mobile_todolist/features/task_groups/data/repositories/task_group_repository_impl.dart';
 import '../../../task_groups/domain/usecases/create_task_group_usecase.dart';
@@ -17,7 +18,10 @@ import '../../../tags/domain/usecases/create_tag_usecase.dart';
 import '../../../tags/domain/usecases/update_tag_usecase.dart';
 import '../../../tags/domain/usecases/delete_tag_usecase.dart';
 import '../../../tags/data/models/tag_model.dart';
-
+import 'package:btl_mobile_todolist/features/tasks/data/datasources/task_remote_data_source.dart';
+import 'package:btl_mobile_todolist/features/tasks/data/repositories/task_repository_impl.dart';
+import 'package:btl_mobile_todolist/features/tasks/domain/usecases/create_task_usecase.dart';
+import 'package:btl_mobile_todolist/features/tasks/data/models/task_model.dart';
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -39,7 +43,9 @@ class _HomePageState extends State<HomePage> {
   CreateTagUseCase? _createTagUseCase;
   UpdateTagUseCase? _updateTagUseCase;
   DeleteTagUseCase? _deleteTagUseCase;
-
+  TaskRemoteDataSource? _taskRemoteDataSource;
+  TaskRepositoryImpl? _taskRepository;
+  CreateTaskUseCase? _createTaskUseCase;
 
   List<TaskGroupModel> _taskGroups = [];
   bool isLoading = true;
@@ -74,7 +80,9 @@ class _HomePageState extends State<HomePage> {
     _createTagUseCase = CreateTagUseCase(_tagRepository!);
     _updateTagUseCase = UpdateTagUseCase(_tagRepository!);
     _deleteTagUseCase = DeleteTagUseCase(_tagRepository!);
-
+    _taskRemoteDataSource = TaskRemoteDataSource(_dio!);
+    _taskRepository = TaskRepositoryImpl(_taskRemoteDataSource!);
+    _createTaskUseCase = CreateTaskUseCase(_taskRepository!);
     await _loadTags();
     await _loadTaskGroups();
     setState(() => isLoading = false);
@@ -378,6 +386,581 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+  
+  Future<void> _showCreateTaskBottomSheet() async {
+  final titleController = TextEditingController();
+  final descriptionController = TextEditingController();
+  TaskGroupModel? selectedGroup;
+  DateTime? selectedDate;
+  TimeOfDay? selectedTime;
+  TagModel? selectedTag;
+
+  // Khởi tạo cấu hình lặp mặc định
+  Map<String, dynamic>? repeatConfig = {
+    'repeat': 'Không lặp lại', // Đảm bảo giá trị mặc định
+    'endType': null,
+    'count': null,
+    'endDate': null,
+  };
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+              top: 16,
+              left: 16,
+              right: 16,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header: Hủy bỏ - Tạo
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: TextButton.styleFrom(foregroundColor: const Color(0xFFEF6820)),
+                        child: const Text('Hủy bỏ', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      ),
+                      TextButton(
+                        onPressed: () async {
+                          if (titleController.text.isEmpty || descriptionController.text.isEmpty || selectedGroup == null || selectedDate == null || selectedTime == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Vui lòng điền đầy đủ thông tin')),
+                            );
+                            return;
+                          }
+
+                          if (_createTaskUseCase == null) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Hệ thống chưa sẵn sàng, vui lòng thử lại sau')),
+                            );
+                            return;
+                          }
+
+                          try {
+                            // Tính dueDateSelect và dueDate
+                            int dueDateSelect;
+                            DateTime dueDate;
+                            final now = DateTime.now();
+                            if (selectedDate!.day == now.day && selectedDate!.month == now.month && selectedDate!.year == now.year) {
+                              dueDateSelect = 1; // Hôm nay
+                              dueDate = selectedDate!;
+                            } else if (selectedDate!.day == now.day + 1 && selectedDate!.month == now.month && selectedDate!.year == now.year) {
+                              dueDateSelect = 2; // Ngày mai
+                              dueDate = selectedDate!;
+                            } else if (selectedDate!.difference(now).inDays <= 7) { // Tuần này
+                              dueDateSelect = 3;
+                              dueDate = selectedDate!;
+                            } else {
+                              dueDateSelect = 4; // Tùy chọn
+                              dueDate = selectedDate!; // Sử dụng selectedDate cho tùy chọn
+                            }
+
+                            // Tạo dueDateTime từ selectedDate và selectedTime
+                            final dueDateTime = DateTime(
+                              selectedDate!.year,
+                              selectedDate!.month,
+                              selectedDate!.day,
+                              selectedTime!.hour,
+                              selectedTime!.minute,
+                            );
+
+                            // Lấy repeatType từ cấu hình lặp, xử lý an toàn hơn
+                            String repeatValue = repeatConfig?['repeat'] ?? 'Không lặp lại'; // Giá trị mặc định nếu null
+                            int repeatType = {'Không lặp lại': 0, 'Hàng ngày': 1, 'Ngày trong tuần': 2, 'Hàng tháng': 3}[repeatValue] ?? 0;
+                            print('repeatConfig: $repeatConfig');
+                            print('repeatValue: $repeatValue');
+                            int? repeatOption;
+                            int? repeatInterval;
+                            DateTime? repeatDueDate = repeatConfig?['endDate'] as DateTime?;
+                            if (repeatConfig?['endType'] != null) {
+                              print('endType: ${repeatConfig?['endType']}');
+                              if (repeatConfig!['endType'] == 'count') {
+                                repeatOption = 1;
+                                repeatInterval = repeatConfig!['count'] as int?;
+                                print('count: $repeatInterval');
+                              } else if (repeatConfig!['endType'] == 'date') {
+                                repeatOption = 2;
+                                repeatDueDate = repeatConfig!['endDate'] as DateTime?;
+                                print('endDate: $repeatDueDate');
+                              }
+                            }
+                            // Sử dụng giá trị mặc định cho repeatDueDate nếu null
+                            final DateTime finalRepeatDueDate = repeatDueDate ?? dueDateTime;
+
+                            final List<int>? tagIds = selectedTag != null ? [selectedTag!.id] : null;
+print('Task Data: {title: ${titleController.text.trim()}, description: ${descriptionController.text.trim()}, groupId: ${selectedGroup!.id}, dueDate: $dueDate, dueDateSelect: $dueDateSelect, time: $selectedTime, repeatType: $repeatType, repeatOption: $repeatOption, repeatInterval: $repeatInterval, repeatDueDate: $finalRepeatDueDate, tagIds: $tagIds}');
+                            final task = await _createTaskUseCase!.call(
+                              title: titleController.text.trim(),
+                              description: descriptionController.text.trim(),
+                              groupId: selectedGroup!.id,
+                              dueDate: dueDate,
+                              dueDateSelect: dueDateSelect,
+                              time: '${selectedTime!.hour.toString().padLeft(2,'0')}:${selectedTime!.minute.toString().padLeft(2,'0')}',
+                              repeatType: repeatType,
+                              repeatOption: repeatOption,
+                              repeatInterval: repeatInterval,
+                              repeatDueDate: finalRepeatDueDate,
+                              tagIds: tagIds,
+                            );
+
+                          
+
+                            if (task != null) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Tạo task thành công')),
+                              );
+                              Navigator.pop(context);
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Tạo task thất bại')),
+                              );
+                            }
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Lỗi khi tạo task: $e')),
+                            );
+                          }
+                        },
+                        style: TextButton.styleFrom(foregroundColor: const Color(0xFFEF6820)),
+                        child: const Text('Tạo', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 1, thickness: 1, color: Color(0xFFE0E0E0)),
+                  const SizedBox(height: 16),
+
+                  // Tiêu đề (bỏ viền, không nhãn)
+                  TextField(
+                    controller: titleController,
+                    decoration: const InputDecoration(
+                      hintText: 'Nhập tiêu đề',
+                      border: InputBorder.none,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Mô tả
+                  TextField(
+                    controller: descriptionController,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      hintText: 'Mô tả',
+                      border: InputBorder.none,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Dropdown chọn nhóm sát trái
+                  DropdownButton<TaskGroupModel>(
+                    hint: const Text('Chọn nhóm'),
+                    value: selectedGroup,
+                    items: _taskGroups.map((group) {
+                      return DropdownMenuItem<TaskGroupModel>(
+                        value: group,
+                        child: Text(group.name),
+                      );
+                    }).toList(),
+                    onChanged: (value) => setState(() => selectedGroup = value),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Hàng icon ngang (lịch, giờ, lặp, tag)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // 📅 Chọn ngày — icon và popup nằm sát nhau
+                      if (selectedDate == null)
+                        IconButton(
+                          icon: const Icon(Icons.calendar_today_outlined),
+                          onPressed: () async {
+                            final RenderBox button = context.findRenderObject() as RenderBox;
+                            final Offset offset = button.localToGlobal(Offset.zero);
+
+                            final selectedValue = await showMenu<String>(
+                              context: context,
+                              position: RelativeRect.fromLTRB(
+                                offset.dx + 30,
+                                offset.dy + 380,
+                                0,
+                                0,
+                              ),
+                              items: const [
+                                PopupMenuItem(value: 'Hôm nay', child: Text('Hôm nay')),
+                                PopupMenuItem(value: 'Ngày mai', child: Text('Ngày mai')),
+                                PopupMenuItem(value: 'Tuần này', child: Text('Tuần này')),
+                                PopupMenuItem(value: 'Tùy chọn', child: Text('Tùy chọn')),
+                              ],
+                            );
+
+                            if (selectedValue != null) {
+                              final now = DateTime.now();
+                              if (selectedValue == 'Hôm nay') {
+                                setState(() => selectedDate = now);
+                              } else if (selectedValue == 'Ngày mai') {
+                                setState(() => selectedDate = now.add(const Duration(days: 1)));
+                              } else if (selectedValue == 'Tuần này') {
+                                final picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: now,
+                                  firstDate: now,
+                                  lastDate: now.add(const Duration(days: 7)),
+                                );
+                                if (picked != null) setState(() => selectedDate = picked);
+                              } else {
+                                final picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: now,
+                                  firstDate: now,
+                                  lastDate: DateTime(2100),
+                                );
+                                if (picked != null) setState(() => selectedDate = picked);
+                              }
+                            }
+                          },
+                        )
+                      else
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              selectedDate!.day == DateTime.now().day &&
+                                      selectedDate!.month == DateTime.now().month &&
+                                      selectedDate!.year == DateTime.now().year
+                                  ? 'Hôm nay'
+                                  : selectedDate!.day == DateTime.now().day + 1 &&
+                                          selectedDate!.month == DateTime.now().month &&
+                                          selectedDate!.year == DateTime.now().year
+                                      ? 'Ngày mai'
+                                      : DateFormat('dd/MM/yyyy').format(selectedDate!),
+                              style: const TextStyle(color: Color(0xFFEF6820), fontSize: 15),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close, size: 18),
+                              onPressed: () => setState(() => selectedDate = null),
+                            ),
+                          ],
+                        ),
+
+                      // ⏰ Chọn giờ
+                      const SizedBox(width: 4),
+                      if (selectedTime == null)
+                        IconButton(
+                          icon: const Icon(Icons.access_time),
+                          onPressed: () async {
+                            final picked = await showTimePicker(
+                              context: context,
+                              initialTime: TimeOfDay.now(),
+                            );
+                            if (picked != null) setState(() => selectedTime = picked);
+                          },
+                        )
+                      else
+                        Row(
+                          children: [
+                            Text(
+                              '${selectedTime!.hour.toString().padLeft(2, '0')}:${selectedTime!.minute.toString().padLeft(2, '0')}',
+                              style: const TextStyle(color: Color(0xFFEF6820), fontSize: 15),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close, size: 18),
+                              onPressed: () => setState(() => selectedTime = null),
+                            ),
+                          ],
+                        ),
+
+                      // 🔁 Lặp
+                      const SizedBox(width: 4),
+                      IconButton(
+                        icon: const Icon(Icons.repeat),
+                        onPressed: () async {
+                          final result = await _showRepeatBottomSheet(context);
+                          if (result != null) {
+                            setState(() => repeatConfig = result);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text('Đã lưu cấu hình lặp: ${result['repeat']}')),
+                            );
+                          }
+                        },
+                      ),
+
+                      // 🏷️ Thẻ
+                      const SizedBox(width: 4),
+                      if (selectedTag == null)
+                        IconButton(
+                          icon: const Icon(Icons.local_offer_outlined),
+                          onPressed: () async {
+                            final tag = await _showTagSelectionBottomSheet(context);
+                            if (tag != null) {
+                              setState(() => selectedTag = tag);
+                            }
+                          },
+                        )
+                      else
+                        Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFF3E0),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                selectedTag!.name,
+                                style: const TextStyle(
+                                  color: Color(0xFFEF6820),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() => selectedTag = null);
+                                },
+                                child: const Icon(
+                                  Icons.close,
+                                  size: 18,
+                                  color: Color(0xFFEF6820),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    },
+  );
+}
+
+
+Future<TagModel?> _showTagSelectionBottomSheet(BuildContext context) async {
+  final List<TagModel> tags = await _tagRemoteDataSource!.getTags();
+
+  return await showModalBottomSheet<TagModel>(
+    context: context,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (context) {
+      return ListView.separated(
+        shrinkWrap: true,
+        padding: const EdgeInsets.all(16),
+        itemCount: tags.length,
+        separatorBuilder: (_, __) => const Divider(height: 1),
+        itemBuilder: (context, index) {
+          final tag = tags[index];
+          return ListTile(
+            title: Text(tag.name), // ⚡ dùng thuộc tính name trong TagModel
+            onTap: () => Navigator.pop(context, tag),
+          );
+        },
+      );
+    },
+  );
+}
+
+
+
+
+Future<Map<String, dynamic>?> _showRepeatBottomSheet(BuildContext context) async {
+  String selectedRepeat = 'Không lặp lại';
+  int? repeatCount;
+  DateTime? endDate;
+  String? selectedEndType;
+
+  return await showModalBottomSheet<Map<String, dynamic>>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (context) {
+      final TextEditingController repeatCountController = TextEditingController();
+
+      return FractionallySizedBox(
+        heightFactor: 0.4,
+        child: StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                top: 16,
+                left: 16,
+                right: 16,
+              ),
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // --- Header ---
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          style: TextButton.styleFrom(
+                            foregroundColor: const Color(0xFFEF6820),
+                          ),
+                          child: const Text(
+                            'Trở lại',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context, {
+                              'repeat': selectedRepeat,
+                              'endType': selectedEndType,
+                              'count': repeatCount,
+                              'endDate': endDate,
+                            });
+                          },
+                          style: TextButton.styleFrom(
+                            foregroundColor: const Color(0xFFEF6820),
+                          ),
+                          child: const Text(
+                            'Lưu',
+                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 1, thickness: 1, color: Color(0xFFE0E0E0)),
+                    const SizedBox(height: 20),
+
+                    // --- Lặp lại ---
+                    const Text(
+                      'Lặp lại',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    DropdownButton<String>(
+                      isExpanded: true,
+                      value: selectedRepeat,
+                      items: const [
+                        DropdownMenuItem(value: 'Không lặp lại', child: Text('Không lặp lại')),
+                        DropdownMenuItem(value: 'Hàng ngày', child: Text('Hàng ngày')),
+                        DropdownMenuItem(value: 'Ngày trong tuần', child: Text('Ngày trong tuần')),
+                        DropdownMenuItem(value: 'Hàng tháng', child: Text('Hàng tháng')),
+                      ],
+                      onChanged: (value) {
+                        setModalState(() => selectedRepeat = value!);
+                      },
+                    ),
+
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Kết thúc',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // --- Số lần lặp ---
+                    Row(
+                      children: [
+                        Radio<String>(
+                          value: 'count',
+                          groupValue: selectedEndType,
+                          onChanged: (value) {
+                            setModalState(() => selectedEndType = value);
+                          },
+                          activeColor: const Color(0xFFEF6820),
+                        ),
+                        const Text('Số lần lặp lại'),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: TextField(
+                            controller: repeatCountController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                              border: OutlineInputBorder(),
+                            ),
+                            onChanged: (val) {
+                              if (val.isNotEmpty) {
+                                setModalState(() => repeatCount = int.tryParse(val));
+                              }
+                            },
+                            enabled: selectedEndType == 'count',
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    // --- Ngày kết thúc ---
+                    Row(
+                      children: [
+                        Radio<String>(
+                          value: 'date',
+                          groupValue: selectedEndType,
+                          onChanged: (value) {
+                            setModalState(() => selectedEndType = value);
+                          },
+                          activeColor: const Color(0xFFEF6820),
+                        ),
+                        const Text('Vào ngày'),
+                        const SizedBox(width: 16),
+                        IconButton(
+                          icon: const Icon(Icons.calendar_today_outlined),
+                          onPressed: selectedEndType == 'date'
+                              ? () async {
+                                  final picked = await showDatePicker(
+                                    context: context,
+                                    initialDate: DateTime.now().add(const Duration(days: 1)),
+                                    firstDate: DateTime.now().add(const Duration(days: 1)),
+                                    lastDate: DateTime(2100),
+                                  );
+                                  if (picked != null) {
+                                    setModalState(() => endDate = picked);
+                                  }
+                                }
+                              : null,
+                        ),
+                        if (endDate != null)
+                          Text(
+                            DateFormat('dd/MM/yyyy').format(endDate!),
+                            style: const TextStyle(color: Color(0xFFEF6820)),
+                          ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 30),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    },
+  );
+}
 
   @override
   Widget build(BuildContext context) {
@@ -512,6 +1095,29 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ),
+              // 🔸 Nút "Tạo mới" góc trái dưới
+Positioned(
+  left: 20,
+  bottom: 20,
+  child: GestureDetector(
+    onTap: _showCreateTaskBottomSheet,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: const [
+          Icon(Icons.add, color: Color(0xFFEF6820), size: 18),
+          SizedBox(width: 4),
+          Text(
+            'Tạo mới',
+            style: TextStyle(
+              color: Color(0xFFEF6820),
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+            ),
+          ),
+        ],
+      ),
+    ),
+  ),
         ],
       ),
 
