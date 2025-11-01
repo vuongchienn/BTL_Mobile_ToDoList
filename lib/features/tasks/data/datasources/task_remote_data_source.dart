@@ -99,14 +99,58 @@ class TaskRemoteDataSource {
       );
 
       if (response.statusCode == 200) {
-        final taskData = response.data['data'] as Map<String, dynamic>;
-        
-        return TaskEntity.fromJson(taskData);
+        final data = response.data;
+
+      // ✅ Nếu backend trả object task → parse luôn
+      if (data is Map<String, dynamic>) {
+        return TaskEntity.fromJson(data);
       }
+      // ✅ Nếu backend trả true/false → bỏ qua
+      print('⚠️ Response không phải là Map (giá trị: $data)');
+      return null;
+    }
       return null;
     } catch (e) {
       print('Lỗi khi tạo task: $e');
       return null;
+    }
+  }
+  Future<bool> updateTask({
+    required int taskDetailId,
+    required String title,
+    required String description,
+    required String dueDate,
+    required String time,
+    required List<int> tagIds,
+    required int priority,
+  }) async {
+    try {
+      final response = await dio.put(
+        '/task/update/$taskDetailId',
+        data: {
+          'title': title,
+          'description': description,
+          'due_date': dueDate,
+          'time': time,
+          'priority': priority,
+          'tag_ids': tagIds,
+        },
+      );
+
+      print('🟢 UpdateTask status: ${response.statusCode}');
+      print('🟢 UpdateTask response: ${response.data}');
+
+      // Nếu API trả về { data: true, message: "..." }
+      if (response.statusCode == 200 && response.data is Map) {
+        final data = response.data as Map<String, dynamic>;
+        final isSuccess = data['data'] == true;
+        return isSuccess;
+      }
+
+      return false;
+    } catch (e) {
+      print('❌ Lỗi khi cập nhật task: $e');
+      return false;
     }
   }
 }

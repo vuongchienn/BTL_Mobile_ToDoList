@@ -16,4 +16,13 @@ abstract class TaskRepository {
     DateTime? repeatDueDate,
     List<int>? tagIds,
   });
+    Future<bool> updateTask({
+    required int taskDetailId,
+    required String title,
+    required String description,
+    required String dueDate,
+    required String time,
+    required List<int> tagIds,
+    required int priority, 
+  });
 }

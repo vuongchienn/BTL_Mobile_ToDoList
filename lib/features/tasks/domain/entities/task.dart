@@ -4,6 +4,8 @@ class TaskEntity {
   final String title;
   final String? description;
   final String dueDate;
+  final String time;
+  final int priority;
   final bool isRepeating;
   final bool isImportant;
   final bool isAdminCreated;
@@ -15,9 +17,11 @@ class TaskEntity {
     required this.title,
     this.description,
     required this.dueDate,
+    required this.time,
     required this.isRepeating,
     required this.isImportant,
     required this.isAdminCreated,
+    required this.priority,
     required this.tags,
   });
 
@@ -28,6 +32,8 @@ class TaskEntity {
       title: json['title'] as String,
       description: json['description'] as String?,
       dueDate: json['dueDate'] as String,
+      time: json['time'] ?? '',
+      priority: json['priority'] ?? 0,
       isRepeating: _parseBool(json['isRepeating']),
       isImportant: _parseBool(json['isImportant']),
       isAdminCreated: _parseBool(json['isAdminCreated']),

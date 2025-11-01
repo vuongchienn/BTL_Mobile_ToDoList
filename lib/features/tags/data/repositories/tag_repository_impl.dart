@@ -2,7 +2,6 @@
 import '../../domain/entities/tag.dart';
 import '../../domain/repositories/tag_repository.dart';
 import '../datasources/tag_remote_data_source.dart';
-import '../models/tag_model.dart';
 
 class TagRepositoryImpl implements TagRepository {
   final TagRemoteDataSource remoteDataSource;

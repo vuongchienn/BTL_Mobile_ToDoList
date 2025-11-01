@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 class TaskItemWidget extends StatelessWidget {
+  final int id;
   final String title;
   final String? description;
   final DateTime? dueDate;
@@ -9,38 +10,76 @@ class TaskItemWidget extends StatelessWidget {
   final bool isRepeating;
   final List<String>? tags;
   final bool isDeleted;
-
+  final Function()? onEdit;
+  final Function()? onDelete;
+  final bool isSelected;
   const TaskItemWidget({
     Key? key,
+    required this.id,
     required this.title,
     this.description,
     this.dueDate,
     this.tags,
     this.isImportant = false,
     this.isRepeating = false,
-    this.isDeleted = false, // Giá trị mặc định là false
+    this.isDeleted = false,
+    this.onEdit,
+    this.onDelete,
+    this.isSelected = false, // Giá trị mặc định là false
   }) : super(key: key);
 
   String _formatDate(DateTime? date) {
     if (date == null) return '';
     try {
-      return DateFormat('dd/MM/yyyy - HH:mm').format(date);
+      return DateFormat('dd/MM/yyyy').format(date);
     } catch (_) {
       return '';
     }
   }
-
+    void _showOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.edit, color: Colors.blue),
+                title: const Text('Sửa task'),
+                onTap: () {
+                  Navigator.pop(context);
+                  if (onEdit != null) onEdit!();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.delete, color: Colors.red),
+                title: const Text('Xóa task'),
+                onTap: () {
+                  Navigator.pop(context);
+                  if (onDelete != null) onDelete!();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
   @override
   Widget build(BuildContext context) {
     final accent = const Color(0xFFEF6820);
-
+    final gray = Colors.grey.shade400;
     return InkWell(
-      onTap: null, // Có thể thêm logic nếu cần
+      onTap: () => _showOptions(context),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          color: isDeleted ? Colors.grey[200] : Colors.white, // Nền xám cho task đã xóa
+          color: isDeleted ? Colors.grey[200] : Colors.white,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
@@ -50,116 +89,118 @@ class TaskItemWidget extends StatelessWidget {
             ),
           ],
         ),
-        child: Row(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Checkbox hoặc dấu lặp lại
-            Container(
-              width: 28,
-              height: 28,
-              margin: const EdgeInsets.only(right: 12, top: 4),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: isRepeating ? accent : Colors.grey.shade300,
-              ),
-              child: isRepeating
-                  ? const Icon(Icons.repeat, size: 16, color: Colors.white)
-                  : null,
+            // 🔸 Dòng tiêu đề có RadioButton + title + star
+            // 🔸 Dòng tiêu đề + star
+Column(
+  crossAxisAlignment: CrossAxisAlignment.start,
+  children: [
+    // 🔸 Dòng tiêu đề + icon repeat + star
+    Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        // Icon lặp lại (hoặc chỗ trống nếu không lặp)
+        Container(
+          width: 28,
+          height: 28,
+          margin: const EdgeInsets.only(right: 12),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isRepeating ? accent : Colors.transparent,
+          ),
+          child: isRepeating
+              ? const Icon(Icons.repeat, size: 16, color: Colors.white)
+              : null,
+        ),
+        // Title
+        Expanded(
+          child: Text(
+            title,
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              fontStyle: isDeleted ? FontStyle.italic : FontStyle.normal,
+              color: isDeleted ? Colors.grey[600] : Colors.black87,
             ),
 
             // Main content
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title + star
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          title,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            fontStyle: isDeleted ? FontStyle.italic : FontStyle.normal, // Chữ nghiêng cho task đã xóa
-                            color: isDeleted ? Colors.grey[600] : Colors.black87,
-                          ),
-                        ),
                       ),
-                      GestureDetector(
-                        onTap: null, // Có thể thêm logic nếu cần
-                        child: Icon(
-                          isImportant ? Icons.star : Icons.star_border,
-                          color: isImportant ? accent : Colors.grey.shade400,
-                          size: 20,
-                        ),
-                      ),
-                    ],
-                  ),
+        ),
+        // Star
+        Icon(
+          isImportant ? Icons.star : Icons.star_border,
+          color: isImportant ? accent : gray,
+          size: 20,
+        ),
+      ],
+    ),
 
-                  if (description != null && description!.isNotEmpty) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      description!,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: isDeleted ? Colors.grey[500] : Colors.grey[600],
-                        fontStyle: isDeleted ? FontStyle.italic : FontStyle.normal,
-                        height: 1.3,
-                      ),
-                    ),
-                  ],
+    // 🔸 Mô tả
+    if (description != null && description!.isNotEmpty)
+      Padding(
+        padding: const EdgeInsets.only(left: 40, top: 4),
+        child: Text(
+          description!,
+          style: TextStyle(
+            fontSize: 13,
+            color: isDeleted ? Colors.grey[500] : Colors.grey[700],
+            fontStyle: isDeleted ? FontStyle.italic : FontStyle.normal,
+          ),
+        ),
+      ),
 
-                  if (tags != null && tags!.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: tags!
-                          .map((t) => Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: isDeleted ? Colors.grey[100] : Colors.grey[100],
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: Colors.grey.shade200),
-                                ),
-                                child: Text(
-                                  t,
-                                    style: TextStyle(
-                                    fontSize: 12,
-                                    color: isDeleted ? Colors.grey[600] : Colors.black54,
-                                  ),
-                                ),
-                              ))
-                          .toList(),
-                    ),
-                  ],
+    // 🔸 Tag list
+  // 🔸 Tag list
+if (tags != null && tags!.isNotEmpty)
+  Padding(
+    padding: const EdgeInsets.only(left: 40, top: 6), // thẳng với title & description
+    child: Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      children: tags!.map((t) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: isDeleted ? Colors.grey[100] : Colors.grey[100],
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+        ),
+        child: Text(
+          t,
+          style: TextStyle(
+            fontSize: 12,
+            color: isDeleted ? Colors.grey[600] : Colors.black54,
+          ),
+        ),
+      )).toList(),
+    ),
+  ),
 
-                  if (dueDate != null) ...[
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.calendar_today,
-                          size: 14,
-                          color: isDeleted ? Colors.grey[400] : accent,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          _formatDate(dueDate),
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isDeleted ? Colors.grey[400] : accent,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
+    // 🔸 Ngày + icon repeat
+    if (dueDate != null)
+      Padding(
+        padding: const EdgeInsets.only(left: 40, top: 8),
+        child: Row(
+          children: [
+            Icon(
+              Icons.repeat,
+              size: 16,
+              color: isRepeating ? accent : gray,
             ),
+            const SizedBox(width: 6),
+            Icon(Icons.calendar_today, size: 14, color: accent),
+            const SizedBox(width: 6),
+            Text(
+              _formatDate(dueDate),
+              style: TextStyle(fontSize: 12, color: accent),
+                ),
+                      ],
+            ),
+          ),
+      ],
+    )
           ],
         ),
       ),
