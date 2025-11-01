@@ -12,6 +12,8 @@ import 'package:btl_mobile_todolist/core/utils/auth_storage.dart';
 import 'package:btl_mobile_todolist/core/routing/app_routes.dart';
 import 'package:go_router/go_router.dart';
 import '../../../tags/data/models/tag_model.dart';
+import '../../domain/usecases/delete_task_usecase.dart';
+import '../../domain/usecases/complete_task_usecase.dart';
 class TaskListPage extends StatefulWidget {
   final String title;
   final String type;
@@ -28,6 +30,8 @@ class TaskListPage extends StatefulWidget {
 
 class _TaskListPageState extends State<TaskListPage> {
   late GetTasksUseCase _getTasksUseCase;
+  late DeleteTaskUseCase _deleteTaskUseCase;
+  late CompleteTaskUseCase? _completeTaskUseCase;
   Map<String, List<TaskEntity>> _groupedTasks = {};
   bool _isLoading = true;
 
@@ -54,7 +58,8 @@ class _TaskListPageState extends State<TaskListPage> {
       final taskRemoteDataSource = TaskRemoteDataSource(dio);
       final taskRepository = TaskRepositoryImpl(taskRemoteDataSource);
       _getTasksUseCase = GetTasksUseCase(taskRepository);
-
+      _deleteTaskUseCase = DeleteTaskUseCase(taskRepository);
+      _completeTaskUseCase = CompleteTaskUseCase(taskRepository);
       await _fetchTasks();
     } catch (e) {
       debugPrint('Init error: $e');
@@ -379,7 +384,10 @@ class _TaskListPageState extends State<TaskListPage> {
                                 isRepeating: task.isRepeating,
                                 tags: task.tags,
                                 isDeleted: widget.type == 'deleted',
+                                onDeleteUseCase: _deleteTaskUseCase,
+                                onDeleted: _fetchTasks, // 
                                 onEdit: () => _showEditBottomSheet(task),
+                                onCompleteUseCase: _completeTaskUseCase, 
                               )),
                           const SizedBox(height: 16),
                         ],

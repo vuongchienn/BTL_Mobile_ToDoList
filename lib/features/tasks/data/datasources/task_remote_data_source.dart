@@ -153,4 +153,28 @@ class TaskRemoteDataSource {
       return false;
     }
   }
+      // task_remote_data_source.dart
+Future<bool> deleteTask(int taskId) async {
+  try {
+    final response = await dio.post('/task/bin/$taskId');
+    print('🟢 DeleteTask status: ${response.statusCode}');
+
+    // Chỉ cần check status 200 là coi như thành công
+    return response.statusCode == 200;
+  } catch (e) {
+    print('❌ Lỗi khi xóa task: $e');
+    return false;
+  }
+}
+
+ Future<bool> completeTask(int taskId) async {
+    try {
+      final response = await dio.post('/task/updateStatusToDone/$taskId'); // endpoint Laravel
+      print('🟢 CompleteTask status: ${response.statusCode}');
+      return response.statusCode == 200;
+    } catch (e) {
+      print('❌ Lỗi khi hoàn thành task: $e');
+      return false;
+    }
+  }
 }

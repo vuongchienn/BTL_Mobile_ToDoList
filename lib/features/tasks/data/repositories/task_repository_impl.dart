@@ -68,4 +68,15 @@ class TaskRepositoryImpl implements TaskRepository {
       priority: priority
     );
   }
+    // task_repository_impl.dart
+  @override
+  Future<bool> deleteTask(int taskId) {
+    return remoteDataSource.deleteTask(taskId);
+  }
+
+
+  @override
+  Future<bool> completeTask(int taskId) async {
+    return remoteDataSource.completeTask(taskId);
+  }
 }
