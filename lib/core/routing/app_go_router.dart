@@ -1,6 +1,8 @@
 import 'package:go_router/go_router.dart';
-
+import 'package:flutter/material.dart';
 import 'package:btl_mobile_todolist/core/routing/app_routes.dart';
+import '../utils/auth_storage.dart';
+import 'go_router_refresh_change.dart';
 import '/features/auth/presentation/pages/login_page.dart';
 import '/features/auth/presentation/pages/register_page.dart';
 import '/features/auth/presentation/pages/success_register_page.dart';
@@ -16,10 +18,26 @@ import '/features/tasks/presentation/pages/next3days_page.dart';
 import '/features/tasks/presentation/pages/next7days_page.dart';
 import '/features/tasks/presentation/pages/completed_tasks_page.dart';
 import '/features/tasks/presentation/pages/deleted_tasks_page.dart';
+import '/features/tasks/presentation/pages/search_result_page.dart';
+
 class AppGoRouter {
   static final GoRouter appRouter = GoRouter(
     initialLocation: AppRoutes.forgotPassword,
     debugLogDiagnostics: true,
+    redirect: (context, state) async {
+    final token = await AuthStorage.getToken();
+    final path = state.uri.path;
+
+    final loggingIn = path == AppRoutes.login || path == AppRoutes.register;
+
+    // Nếu chưa đăng nhập và cố vào route cần bảo vệ -> login
+    if (token == null && !loggingIn) return AppRoutes.login;
+
+    // Nếu đã đăng nhập mà vào login/register -> home
+    if (token != null && loggingIn) return AppRoutes.home;
+
+    return null; // không redirect
+  },
     routes:[
       GoRoute(path: AppRoutes.home, builder: (context, state) => const HomePage()),
        GoRoute(path: AppRoutes.login, builder: (context, state) => const LoginPage()),
@@ -70,6 +88,13 @@ class AppGoRouter {
       path: AppRoutes.deletedTasks,
       builder: (context, state) => const DeletedTasksPage(),
     ),
+        GoRoute(
+        path: AppRoutes.search, // '/search'
+        builder: (context, state) {
+          final keyword = state.extra as String? ?? '';
+          return SearchResultPage(keyword: keyword);
+        },
+      ),
     ],
 
   );

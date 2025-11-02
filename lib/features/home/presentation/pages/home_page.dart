@@ -1,7 +1,7 @@
 import 'package:btl_mobile_todolist/core/routing/app_routes.dart';
-import 'package:go_router/go_router.dart';
 import 'package:btl_mobile_todolist/core/utils/auth_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../widgets/home_section.dart';
 import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
@@ -18,10 +18,30 @@ import '../../../tags/domain/usecases/create_tag_usecase.dart';
 import '../../../tags/domain/usecases/update_tag_usecase.dart';
 import '../../../tags/domain/usecases/delete_tag_usecase.dart';
 import '../../../tags/data/models/tag_model.dart';
+
+
 import 'package:btl_mobile_todolist/features/tasks/data/datasources/task_remote_data_source.dart';
 import 'package:btl_mobile_todolist/features/tasks/data/repositories/task_repository_impl.dart';
 import 'package:btl_mobile_todolist/features/tasks/domain/usecases/create_task_usecase.dart';
 import 'package:btl_mobile_todolist/features/tasks/data/models/task_model.dart';
+
+import 'package:btl_mobile_todolist/features/auth/domain/usecases/logout_user.dart';
+import 'package:btl_mobile_todolist/features/auth/data/repositories/auth_repository_impl.dart';
+
+import '../../../auth/data/datasources/auth_remote_data_source.dart'; 
+import '../../../../core/routing/auth_stream_service.dart';
+
+import 'package:btl_mobile_todolist/features/search_histories/data/datasources/search_history_remote_data_source.dart';
+import 'package:btl_mobile_todolist/features/search_histories/data/repositories/search_history_repository_impl.dart';
+import 'package:btl_mobile_todolist/features/search_histories/domain/usecases/get_search_histories_usecase.dart';
+import 'package:btl_mobile_todolist/features/search_histories/domain/usecases/delete_search_histories_usecase.dart';
+import 'package:btl_mobile_todolist/features/search_histories/domain/usecases/delete_all_search_histories_usecase.dart';
+import 'package:btl_mobile_todolist/features/search_histories/domain/usecases/add_search_histories_usecase.dart';
+import 'package:btl_mobile_todolist/features/search_histories/data/models/search_history_model.dart';
+import 'package:btl_mobile_todolist/features/search_histories/domain/entities/search_history.dart';
+
+
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -43,13 +63,27 @@ class _HomePageState extends State<HomePage> {
   CreateTagUseCase? _createTagUseCase;
   UpdateTagUseCase? _updateTagUseCase;
   DeleteTagUseCase? _deleteTagUseCase;
+
   TaskRemoteDataSource? _taskRemoteDataSource;
   TaskRepositoryImpl? _taskRepository;
   CreateTaskUseCase? _createTaskUseCase;
 
+  AuthRemoteDataSource? _authRemoteDataSource;
+  AuthRepositoryImpl? _authRepository;
+  LogoutUseCase? _logoutUseCase;
+
   List<TaskGroupModel> _taskGroups = [];
   bool isLoading = true;
 
+
+  // Thêm các biến mới
+  SearchHistoryRemoteDataSource? _searchHistoryRemoteDataSource;
+  SearchHistoryRepositoryImpl? _searchHistoryRepository;
+  GetSearchHistoriesUseCase? _getSearchHistoriesUseCase;
+  DeleteSearchHistoryUseCase? _deleteSearchHistoryUseCase;
+  DeleteAllSearchHistoryUseCase? _deleteAllSearchHistoryUseCase;
+  AddSearchHistoryUseCase? _addSearchHistoryUseCase;
+  List<SearchHistory> _searchHistories = [];
 
   @override
   void initState() {
@@ -80,11 +114,27 @@ class _HomePageState extends State<HomePage> {
     _createTagUseCase = CreateTagUseCase(_tagRepository!);
     _updateTagUseCase = UpdateTagUseCase(_tagRepository!);
     _deleteTagUseCase = DeleteTagUseCase(_tagRepository!);
+
     _taskRemoteDataSource = TaskRemoteDataSource(_dio!);
     _taskRepository = TaskRepositoryImpl(_taskRemoteDataSource!);
     _createTaskUseCase = CreateTaskUseCase(_taskRepository!);
+
+    _authRemoteDataSource = AuthRemoteDataSource(_dio!);
+    _authRepository = AuthRepositoryImpl(_authRemoteDataSource!);
+    _logoutUseCase = LogoutUseCase(_authRepository!);
+
+    _searchHistoryRemoteDataSource = SearchHistoryRemoteDataSource(_dio!);
+    _searchHistoryRepository = SearchHistoryRepositoryImpl(_searchHistoryRemoteDataSource!);
+    _getSearchHistoriesUseCase = GetSearchHistoriesUseCase(_searchHistoryRepository!);
+    _deleteSearchHistoryUseCase = DeleteSearchHistoryUseCase(_searchHistoryRepository!);
+    _deleteAllSearchHistoryUseCase = DeleteAllSearchHistoryUseCase(_searchHistoryRepository!);
+    _addSearchHistoryUseCase = AddSearchHistoryUseCase(_searchHistoryRepository!);
+
+
+
     await _loadTags();
     await _loadTaskGroups();
+    await _loadSearchHistories();
     setState(() => isLoading = false);
 
   }
@@ -107,13 +157,27 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _loadTaskGroups() async {
+  try {
+    final groups = await _remoteDataSource!.getTaskGroups();
+    setState(() {
+      _taskGroups = groups;
+    });
+  } catch (e) {
+    print('Lỗi khi load task groups: $e');
+  }
+}
+
+  Future<void> _loadSearchHistories() async {
     try {
-      final groups = await _remoteDataSource!.getTaskGroups();
-      setState(() {
-        _taskGroups = groups;
-      });
+      if (_getSearchHistoriesUseCase == null) {
+        setState(() => _searchHistories = []);
+        return;
+      }
+      final histories = await _getSearchHistoriesUseCase!.call();
+      setState(() => _searchHistories = histories);
     } catch (e) {
-      print('Lỗi khi load task groups: $e');
+      print('Lỗi khi load search histories: $e');
+      setState(() => _searchHistories = []); // Đặt danh sách rỗng nếu có lỗi
     }
   }
 
@@ -152,7 +216,7 @@ class _HomePageState extends State<HomePage> {
   }
 
 
-  Future<void> _deleteTaskGroup(int id) async {
+ Future<void> _deleteTaskGroup(int id) async {
     if (_remoteDataSource == null) return;
     try {
 
@@ -168,7 +232,7 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  void _showUpdateTaskGroupDialog(TaskGroupModel group) {
+void _showUpdateTaskGroupDialog(TaskGroupModel group) {
     final controller = TextEditingController(text: group.name);
     showDialog(
       context: context,
@@ -210,7 +274,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Future<void> _showTaskGroupOptions(TaskGroupModel group) async {
+ Future<void> _showTaskGroupOptions(TaskGroupModel group) async {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent, // Đảm bảo backdrop mờ
@@ -261,133 +325,134 @@ class _HomePageState extends State<HomePage> {
 
 
   Future<void> _loadTags() async {
-    try {
-      final tags = await _tagRemoteDataSource!.getTags();
-      setState(() => _tags = tags);
-    } catch (e) {
-      print('Lỗi khi load tags: $e');
-    }
+  try {
+    final tags = await _tagRemoteDataSource!.getTags();
+    setState(() => _tags = tags);
+  } catch (e) {
+    print('Lỗi khi load tags: $e');
   }
+}
 
-  Future<void> _createTag(String name) async {
-    if (name.isEmpty || _createTagUseCase == null) return;
-    try {
-      final tag = await _createTagUseCase!(name);
-      await _loadTags();
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Tạo thẻ "${tag.name}" thành công')));
-    } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Lỗi: $e')));
-    }
+Future<void> _createTag(String name) async {
+  if (name.isEmpty || _createTagUseCase == null) return;
+  try {
+    final tag = await _createTagUseCase!(name);
+    await _loadTags();
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('Tạo thẻ "${tag.name}" thành công')));
+  } catch (e) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('Lỗi: $e')));
   }
+}
 
-  Future<void> _deleteTag(int id) async {
-    try {
-      await _deleteTagUseCase!(id);
-      await _loadTags();
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Xóa thẻ thành công')));
-    } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Lỗi xóa thẻ: $e')));
-    }
+Future<void> _deleteTag(int id) async {
+  try {
+    await _deleteTagUseCase!(id);
+    await _loadTags();
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Xóa thẻ thành công')));
+  } catch (e) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('Lỗi xóa thẻ: $e')));
   }
+}
 
-  Future<void> _updateTag(int id, String newName) async {
-    try {
-      await _updateTagUseCase!(id, newName);
-      await _loadTags();
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Cập nhật thẻ thành công')));
-    } catch (e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Lỗi cập nhật thẻ: $e')));
-    }
+Future<void> _updateTag(int id, String newName) async {
+  try {
+    await _updateTagUseCase!(id, newName);
+    await _loadTags();
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Cập nhật thẻ thành công')));
+  } catch (e) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text('Lỗi cập nhật thẻ: $e')));
   }
+}
 
 
-  Future<void> _showCreateTagDialog() async {
-    final controller = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Tạo thẻ mới'),
-        content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(hintText: 'Nhập tên thẻ'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Huỷ')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF6820)),
-            onPressed: () async {
-              await _createTag(controller.text.trim());
+Future<void> _showCreateTagDialog() async {
+  final controller = TextEditingController();
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Tạo thẻ mới'),
+      content: TextField(
+        controller: controller,
+        decoration: const InputDecoration(hintText: 'Nhập tên thẻ'),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Huỷ')),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF6820)),
+          onPressed: () async {
+            await _createTag(controller.text.trim());
+            Navigator.pop(context);
+          },
+          child: const Text('Tạo'),
+        )
+      ],
+    ),
+  );
+}
+
+void _showTagOptions(TagModel tag) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (context) {
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.edit, color: Color(0xFFEF6820)),
+            title: const Text('Đổi tên'),
+            onTap: () {
               Navigator.pop(context);
+              _showUpdateTagDialog(tag);
             },
-            child: const Text('Tạo'),
-          )
-        ],
-      ),
-    );
-  }
-
-  void _showTagOptions(TagModel tag) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (context) {
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.edit, color: Color(0xFFEF6820)),
-              title: const Text('Đổi tên'),
-              onTap: () {
-                Navigator.pop(context);
-                _showUpdateTagDialog(tag);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete, color: Colors.red),
-              title: const Text('Xóa'),
-              onTap: () {
-                Navigator.pop(context);
-                _deleteTag(tag.id);
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showUpdateTagDialog(TagModel tag) {
-    final controller = TextEditingController(text: tag.name);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cập nhật thẻ'),
-        content: TextField(controller: controller),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Huỷ')),
-          ElevatedButton(
-            onPressed: () async {
-              await _updateTag(tag.id, controller.text.trim());
+          ),
+          ListTile(
+            leading: const Icon(Icons.delete, color: Colors.red),
+            title: const Text('Xóa'),
+            onTap: () {
               Navigator.pop(context);
+              _deleteTag(tag.id);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF6820)),
-            child: const Text('Cập nhật'),
-          )
+          ),
         ],
-      ),
-    );
-  }
-  
-  Future<void> _showCreateTaskBottomSheet() async {
+      );
+    },
+  );
+}
+
+void _showUpdateTagDialog(TagModel tag) {
+  final controller = TextEditingController(text: tag.name);
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('Cập nhật thẻ'),
+      content: TextField(controller: controller),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Huỷ')),
+        ElevatedButton(
+          onPressed: () async {
+            await _updateTag(tag.id, controller.text.trim());
+            Navigator.pop(context);
+          },
+          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFEF6820)),
+          child: const Text('Cập nhật'),
+        )
+      ],
+    ),
+  );
+}
+
+
+Future<void> _showCreateTaskBottomSheet() async {
   final titleController = TextEditingController();
   final descriptionController = TextEditingController();
   TaskGroupModel? selectedGroup;
@@ -962,6 +1027,258 @@ Future<Map<String, dynamic>?> _showRepeatBottomSheet(BuildContext context) async
   );
 }
 
+void _showLogoutBottomSheet() {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.transparent,
+    builder: (context) {
+      return Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text(
+                'Đăng xuất',
+                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              ),
+              onTap: () async {
+                Navigator.pop(context); 
+                try {
+                  await _logoutUseCase?.call();
+                  await AuthStorage.clearToken();
+                  await authStreamService.notifyChange(); // router sẽ redirect về login
+
+                  // Sau khi đăng xuất thành công, chuyển về trang login
+                  context.go(AppRoutes.login); 
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Đăng xuất thất bại: $e')),
+                  );
+                }
+              },
+            ),
+          ],
+        ),
+      );
+    },
+  );
+}
+
+
+Future<void> _showSearchHistoryBottomSheet(BuildContext context) async {
+  await _loadSearchHistories(); // Đảm bảo dữ liệu mới nhất
+  final TextEditingController _searchController = TextEditingController();
+
+  showModalBottomSheet(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (context) {
+      return StatefulBuilder(
+        builder: (BuildContext context, StateSetter setState) {
+          return DraggableScrollableSheet(
+            initialChildSize: 0.6,
+            minChildSize: 0.4,
+            maxChildSize: 0.9,
+            expand: false,
+            builder: (context, scrollController) {
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, -2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 🔸 Header với nút đóng
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Lịch sử tìm kiếm',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFFEF6820),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Color(0xFFEF6820)),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // 🔸 Thanh tìm kiếm
+                    Container(
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F6F7),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: TextField(
+                        controller: _searchController,
+                        textInputAction: TextInputAction.search, // Hiển thị nút Enter dạng “Search”
+                        decoration: InputDecoration(
+                          hintText: 'Tìm kiếm...',
+                          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                          border: InputBorder.none,
+                          contentPadding: const EdgeInsets.symmetric(
+                            vertical: 12,
+                            horizontal: 16,
+                          ),
+                        ),
+                        onSubmitted: (query) async {
+                          if (query.trim().isEmpty) return;
+
+                           // 👉 Thêm vào lịch sử tìm kiếm
+                          await _addSearchHistoryUseCase?.call(query.trim());
+
+                          // 👉 Điều hướng sang trang kết quả (đúng route)
+                         context.push(AppRoutes.search, extra: query.trim());
+                        },
+                      ),
+                    ),
+
+
+                    // 🔸 Hàng chứa “Lịch sử tìm kiếm” và “Xóa tất cả”
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12, bottom: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Kết quả gần đây',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () async {
+                               if (_deleteAllSearchHistoryUseCase != null) {
+                                await _deleteAllSearchHistoryUseCase!.call();
+
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Đã xóa tất cả lịch sử tìm kiếm')),
+                                );
+
+                                await _loadSearchHistories(); // reload danh sách rỗng
+                                setState(() {}); // cập nhật UI
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Không thể xóa, use case chưa khởi tạo')),
+                                );
+                              }
+                            },
+                            child: const Text(
+                              'Xóa tất cả',
+                              style: TextStyle(
+                                color: Color(0xFFEF6820),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // 🔸 Danh sách lịch sử tìm kiếm
+                    Expanded(
+                      child: _searchHistories.isEmpty
+                          ? const Center(
+                              child: Text(
+                                'Không có lịch sử tìm kiếm',
+                                style: TextStyle(color: Colors.grey),
+                              ),
+                            )
+                          : ListView.builder(
+                              controller: scrollController,
+                              itemCount: _searchHistories.length,
+                              itemBuilder: (context, index) {
+                                final history = _searchHistories[index];
+                                return Card(
+                                  elevation: 1,
+                                  margin: const EdgeInsets.only(bottom: 8),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: ListTile(
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      vertical: 8,
+                                      horizontal: 16,
+                                    ),
+                                    leading: const Icon(Icons.history, color: Color(0xFFEF6820)),
+                                    title: Text(
+                                      history.searchQuery,
+                                      style: const TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    trailing: IconButton(
+                                      icon: const Icon(Icons.delete, color: Colors.red),
+                                      onPressed: () async {
+                                        if (history.id != null && _deleteSearchHistoryUseCase != null) {
+                                          await _deleteSearchHistoryUseCase!.call(history.id!);
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Xóa lịch sử thành công')),
+                                          );
+                                          await _loadSearchHistories(); // Tải lại danh sách
+                                          setState(() {}); // Cập nhật UI trong bottom sheet
+                                   
+                                        } else {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(content: Text('Không thể xóa, ID không hợp lệ')),
+                                          );
+                                        }
+                                      },
+                                    ),
+                                    onTap: () async {
+                                      final query = history.searchQuery;
+                                      // Khi người dùng chọn 1 lịch sử → điền vào ô tìm kiếm
+                                       if (query.trim().isEmpty) return;
+
+                           // 👉 Thêm vào lịch sử tìm kiếm
+                                      await _addSearchHistoryUseCase?.call(query.trim());
+
+                                      // 👉 Điều hướng sang trang kết quả (đúng route)
+                                    context.push(AppRoutes.search, extra: query.trim());
+                                    },
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      );
+    },
+  );
+}
+
+
+
   @override
   Widget build(BuildContext context) {
     final accent = const Color(0xFFEF6820);
@@ -978,34 +1295,45 @@ Future<Map<String, dynamic>?> _showRepeatBottomSheet(BuildContext context) async
         backgroundColor: Colors.white,
         elevation: 0,
         toolbarHeight: 64,
-        title: Container(
-          height: 40,
-          decoration: BoxDecoration(
-            color: const Color(0xFFF5F6F7),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const TextField(
-            decoration: InputDecoration(
-              hintText: 'Tìm kiếm',
-              prefixIcon: Icon(Icons.search, color: Colors.grey),
-              border: InputBorder.none,
-              hintStyle: TextStyle(color: Colors.grey),
-              contentPadding: EdgeInsets.symmetric(vertical: 8),
+        title: GestureDetector(
+          onTap: () => _showSearchHistoryBottomSheet(context),
+          child: Container(
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F6F7),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              children: const [
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  child: Icon(Icons.search, color: Colors.grey),
+                ),
+                Expanded(
+                  child: Text(
+                    'Tìm kiếm',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
-        actions: const [
+        actions: [
           Padding(
-            padding: EdgeInsets.only(right: 16),
-            child: Icon(Icons.more_vert, color: Colors.black87),
+            padding: const EdgeInsets.only(right: 16),
+            child: GestureDetector(
+              onTap: _showLogoutBottomSheet,
+              child: const Icon(Icons.more_vert, color: Colors.black87),
+            ),
           ),
         ],
       ),
       body: Stack(
-        children: [
-          isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : RefreshIndicator(
+  children: [
+    isLoading
+        ? const Center(child: CircularProgressIndicator())
+        : RefreshIndicator(
             onRefresh: _loadTaskGroups,
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
@@ -1033,19 +1361,19 @@ Future<Map<String, dynamic>?> _showRepeatBottomSheet(BuildContext context) async
                       children: _taskGroups
                           .map(
                             (group) => Card(
-                          elevation: 1,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                          child: ListTile(
-                            title: Text(group.name,
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.w600)),
-                            trailing: const Icon(Icons.chevron_right,
-                                color: Colors.grey),
-                            onTap: () => _showTaskGroupOptions(group),
-                          ),
-                        ),
-                      )
+                              elevation: 1,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12)),
+                              child: ListTile(
+                                title: Text(group.name,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.w600)),
+                                trailing: const Icon(Icons.chevron_right,
+                                    color: Colors.grey),
+                                onTap: () => _showTaskGroupOptions(group),
+                              ),
+                            ),
+                          )
                           .toList(),
                     ),
                   const SizedBox(height: 28),
@@ -1062,40 +1390,40 @@ Future<Map<String, dynamic>?> _showRepeatBottomSheet(BuildContext context) async
                   ),
                   const SizedBox(height: 12),
                   Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _tags.isEmpty
-                        ? [const Text('Chưa có thẻ nào 😄', style: TextStyle(color: Colors.grey))]
-                        : _tags.map(
-                          (tag) => GestureDetector(
-                        onTap: () => _showTagOptions(tag),
-                        child: _buildTag(tag.name, accent),
-                      ),
-                    ).toList(),
-                  ),
+  spacing: 8,
+  runSpacing: 8,
+  children: _tags.isEmpty
+      ? [const Text('Chưa có thẻ nào 😄', style: TextStyle(color: Colors.grey))]
+      : _tags.map(
+          (tag) => GestureDetector(
+            onTap: () => _showTagOptions(tag),
+            child: _buildTag(tag.name, accent),
+          ),
+        ).toList(),
+),
 
                 ],
               ),
             ),
           ),
 
-          // 🔸 Cố định chữ “Tạo nhóm” góc phải dưới
-          Positioned(
-            right: 20,
-            bottom: 20,
-            child: GestureDetector(
-              onTap: _showCreateTaskGroupDialog,
-              child: const Text(
-                'Tạo nhóm',
-                style: TextStyle(
-                  color: Color(0xFFEF6820),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
-              ),
-            ),
+    // 🔸 Cố định chữ “Tạo nhóm” góc phải dưới
+    Positioned(
+      right: 20,
+      bottom: 20,
+      child: GestureDetector(
+        onTap: _showCreateTaskGroupDialog,
+        child: const Text(
+          'Tạo nhóm',
+          style: TextStyle(
+            color: Color(0xFFEF6820),
+            fontWeight: FontWeight.bold,
+            fontSize: 18,
           ),
-              // 🔸 Nút "Tạo mới" góc trái dưới
+        ),
+      ),
+    ),
+    // 🔸 Nút "Tạo mới" góc trái dưới
 Positioned(
   left: 20,
   bottom: 20,
@@ -1118,8 +1446,8 @@ Positioned(
       ),
     ),
   ),
-        ],
-      ),
+  ],
+),
 
     );
   }
@@ -1128,8 +1456,8 @@ Positioned(
     return Column(
       children: [
         GestureDetector(
-          onTap: () => context.go(AppRoutes.today),
-          child: const HomeSection(
+        onTap: () => context.go(AppRoutes.today),
+        child: const HomeSection(
           title: 'Hôm nay',
           count: 0,
           icon: Icons.check_circle_outline,
@@ -1142,7 +1470,7 @@ Positioned(
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(
+           Expanded(
             child: GestureDetector(
               onTap: () => context.go(AppRoutes.next3Days),
               child: const HomeSection(
@@ -1156,8 +1484,8 @@ Positioned(
             ),
           ),
             SizedBox(width: 12),
-            Expanded(
-          child: GestureDetector(
+             Expanded(
+            child: GestureDetector(
               onTap: () => context.go(AppRoutes.next7Days),
               child: const HomeSection(
                 title: '7 ngày tới',
@@ -1172,7 +1500,7 @@ Positioned(
         const SizedBox(height: 12),
         Row(
           children: [
-              Expanded(
+            Expanded(
             child: GestureDetector(
               onTap: () => context.go(AppRoutes.all),
               child: const HomeSection(
@@ -1210,7 +1538,7 @@ Positioned(
                     height: 70,
                   ),
                 ),
-            ),
+              ),
             SizedBox(width: 12),
             Expanded(
               child: GestureDetector(

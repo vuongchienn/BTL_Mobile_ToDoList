@@ -177,4 +177,51 @@ Future<bool> deleteTask(int taskId) async {
       return false;
     }
   }
+
+
+   Future<Map<String, List<TaskEntity>>> searchTasksByTitle(String title) async {
+    try {
+      final response = await dio.post(
+        '/task/search',
+        data: {'title': title},
+      );
+      print('API response for searchTasksByTitle: ${response.data}'); // Debug log
+
+      if (response.statusCode != 200) {
+        print('Lỗi HTTP khi tìm kiếm: ${response.statusCode} - ${response.data}');
+        return {};
+      }
+
+      final data = response.data['data'];
+      if (data == null) {
+        print('Dữ liệu "data" từ API là null khi tìm kiếm với tiêu đề: $title');
+        return {};
+      }
+
+      if (data is! Map<String, dynamic>) {
+        print('Dữ liệu "data" không phải là Map<String, dynamic>: $data');
+        return {};
+      }
+
+      final Map<String, dynamic> rawData = data as Map<String, dynamic>;
+      final Map<String, List<TaskEntity>> groupedTasks = {};
+
+      rawData.forEach((key, value) {
+        if (value is List) {
+          groupedTasks[key] = value
+              .map((e) => TaskEntity.fromJson(e as Map<String, dynamic>))
+              .toList();
+        } else {
+          print('Giá trị của key $key không phải là List: $value');
+        }
+      });
+
+      return groupedTasks;
+    } catch (e) {
+      print('Lỗi khi tìm kiếm task: $e');
+      return {};
+    }
+  }
+
+  
 }

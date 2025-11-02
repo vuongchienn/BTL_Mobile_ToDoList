@@ -28,4 +28,7 @@ abstract class TaskRepository {
 
   Future<bool> deleteTask(int taskId);
   Future<bool> completeTask(int taskId);
+
+  Future<Map<String, List<TaskEntity>>> searchTasksByTitle(String title);
+
 }
