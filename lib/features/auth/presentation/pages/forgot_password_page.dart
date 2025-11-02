@@ -29,12 +29,6 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     try {
       final result = await sendOtpUseCase(emailController.text.trim());
       if (result['message'] == 'OTP đã được gửi qua email.') {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('OTP đã được gửi qua email.'),
-            backgroundColor: Colors.green,
-          ),
-        );
         context.go(AppRoutes.verifyOtp, extra: emailController.text.trim());
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -116,14 +110,21 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text("Đăng ký / "),
+                    GestureDetector(
+                      onTap: () => context.go(AppRoutes.register),
+                      child: const Text(
+                        "Đăng ký / ",
+                        style: TextStyle(
+                          color: Color(0xFFEF6820),
+                        ),
+                      ),
+                    ),
                     GestureDetector(
                       onTap: () => context.go(AppRoutes.login),
                       child: const Text(
                         "Đăng nhập",
                         style: TextStyle(
                           color: Color(0xFFEF6820),
-                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
