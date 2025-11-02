@@ -198,7 +198,9 @@ class _LoginPageState extends State<LoginPage> {
                   Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        context.go(AppRoutes.forgotPassword);
+                      },
                       child: const Text("Quên mật khẩu?",
                           style: TextStyle(color: Color(0xFFEF6820))),
                     ),

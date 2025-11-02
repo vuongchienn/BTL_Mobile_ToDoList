@@ -85,4 +85,18 @@ class TaskRepositoryImpl implements TaskRepository {
     return await remoteDataSource.searchTasksByTitle(title);
   }
 
+  @override
+    Future<bool> updateStatusToDoing(int taskId) async {
+      return await remoteDataSource.updateStatusToDoing(taskId);
+    }
+  @override
+    Future<bool> deleteBin(int taskDetailId) async {
+      return await remoteDataSource.deleteBin(taskDetailId);
+    }
+
+  @override
+  Future<bool> deleteAllBinTasks() async {
+    return await remoteDataSource.deleteAllBinTasks();
+  }   
+    
 }

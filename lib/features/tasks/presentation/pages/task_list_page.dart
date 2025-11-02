@@ -271,6 +271,44 @@ class _TaskListPageState extends State<TaskListPage> {
     },
   );
 }
+Future<void> _deleteAllBinTasks() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Xác nhận'),
+        content: const Text('Bạn có chắc muốn xóa tất cả task trong thùng rác?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Xóa tất cả'),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    try {
+      final success = await _deleteTaskUseCase.deleteAllBinTasks(); // Giả sử phương thức này được thêm
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Xóa tất cả task trong thùng rác thành công')),
+        );
+        await _fetchTasks(); // Làm mới danh sách
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Xóa tất cả task trong thùng rác thất bại')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi khi xóa tất cả: $e')),
+      );
+    }
+  }
   @override
   Widget build(BuildContext context) {
     final accent = const Color(0xFFEF6820);
@@ -309,6 +347,12 @@ class _TaskListPageState extends State<TaskListPage> {
         elevation: 0,
         iconTheme: const IconThemeData(color: Color(0xFFEF6820)),
         actions: [
+          if (widget.type == 'deleted') // Chỉ hiển thị nút "Xóa tất cả" khi ở trang Thùng rác
+            IconButton(
+              icon: const Icon(Icons.delete_forever, color: Colors.red),
+              onPressed: _deleteAllBinTasks,
+              tooltip: 'Xóa tất cả',
+            ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: _fetchTasks,
@@ -384,6 +428,7 @@ class _TaskListPageState extends State<TaskListPage> {
                                 isRepeating: task.isRepeating,
                                 tags: task.tags,
                                 isDeleted: widget.type == 'deleted',
+                                isCompleted: widget.type == 'completed',
                                 onDeleteUseCase: _deleteTaskUseCase,
                                 onDeleted: _fetchTasks, // 
                                 onEdit: () => _showEditBottomSheet(task),

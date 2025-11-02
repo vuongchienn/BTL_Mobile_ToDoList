@@ -9,4 +9,7 @@ class CompleteTaskUseCase {
   Future<bool> call(int taskId) async {
     return repository.completeTask(taskId);
   }
+  Future<bool> undoComplete(int id) async {
+    return await repository.updateStatusToDoing(id);
+  }
 }
