@@ -27,6 +27,9 @@ class _RegisterPageState extends State<RegisterPage> {
   bool hasSpecial = false;
   bool hasMinLength = false;
 
+  bool isLoading = false;
+
+
   void _validatePassword(String value) {
     setState(() {
       hasLetter = RegExp(r'[a-zA-Z]').hasMatch(value);
@@ -37,6 +40,7 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Future<void> _register() async {
+  setState(() => isLoading = true); 
   final dio = Dio(BaseOptions(baseUrl: 'http://127.0.0.1:8000/api'));
   final usecase = RegisterUseCase(
     AuthRepositoryImpl(AuthRemoteDataSource(dio)),
@@ -69,6 +73,8 @@ class _RegisterPageState extends State<RegisterPage> {
         backgroundColor: Colors.red,
       ),
     );
+  }finally {
+    if (mounted) setState(() => isLoading = false); // 👈 tắt loading
   }
 }
 
@@ -222,7 +228,16 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
                     ),
                     onPressed: agreePolicy ? _register : null,
-                    child: const Text("Đăng ký"),
+                    child: isLoading
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text("Đăng ký"),
                   ),
                 ),
 
@@ -243,7 +258,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           "Đăng nhập",
                           style: TextStyle(
                             color: Color(0xFFEF6820),
-                            fontWeight: FontWeight.w600,
+                         
                           ),
                         ),
                        ),

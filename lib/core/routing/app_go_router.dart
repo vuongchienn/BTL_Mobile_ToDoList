@@ -32,6 +32,7 @@ class AppGoRouter {
         final publicRoutes = [
           AppRoutes.login,
           AppRoutes.register,
+          AppRoutes.successRegister,
           AppRoutes.forgotPassword,
           AppRoutes.verifyOtp,
           AppRoutes.resetPassword,
