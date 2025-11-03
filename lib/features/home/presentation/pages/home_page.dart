@@ -231,6 +231,52 @@ class _HomePageState extends State<HomePage> {
       );
     }
   }
+Future<void> _confirmAndDeleteTaskGroup(int id) async {
+  final bool? confirm = await showDialog<bool>(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        title: Row(
+          children: const [
+            Icon(Icons.info_outline, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Xoá nhóm'),
+          ],
+        ),
+        content: const Text('Bạn có chắc chắn muốn xoá nhóm không?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text(
+              'Huỷ',
+              style: TextStyle(color: Colors.grey),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF6820),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text(
+              'Xoá',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+
+  if (confirm == true) {
+    await _deleteTaskGroup(id);
+  }
+}
 
 void _showUpdateTaskGroupDialog(TaskGroupModel group) {
     final controller = TextEditingController(text: group.name);
