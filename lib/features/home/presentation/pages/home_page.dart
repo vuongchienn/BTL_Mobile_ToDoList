@@ -429,7 +429,7 @@ Future<void> _confirmAndDeleteTag(int id) async {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF944D),
+                backgroundColor: const Color(0xFFEF6820),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
