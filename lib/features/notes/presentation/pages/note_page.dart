@@ -88,21 +88,45 @@ class _NotePageState extends State<NotePage> {
       context: context,
       builder: (context) {
         return AlertDialog(
+          backgroundColor: Colors.white,
           title: const Text('Sửa ghi chú'),
-          content: TextField(
+          content: Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFF4F4F4), // ✅ nền ô nhập màu xám nhạt
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: TextField(
             controller: controller,
-            maxLines: 3,
+            maxLines: 4,
             decoration: const InputDecoration(
-              border: OutlineInputBorder(),
               hintText: 'Nhập nội dung mới...',
+              border: InputBorder.none, // ✅ bỏ viền
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             ),
           ),
+        ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Huỷ'),
+            style: TextButton.styleFrom(
+              backgroundColor: const Color(0xFFF4F4F4), // nền xám nhạt
+              foregroundColor: Colors.black, // chữ đen
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
             ),
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Huỷ'),
+          ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+              backgroundColor: Color(0xffef6820), // ✅ nút Lưu màu cam
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
+            ),
               onPressed: () => Navigator.pop(context, controller.text),
               child: const Text('Lưu'),
             ),
@@ -124,17 +148,33 @@ class _NotePageState extends State<NotePage> {
       context: context,
       builder: (context) {
         return AlertDialog(
+          backgroundColor: Colors.white,
           title: const Text('Xoá ghi chú'),
           content: const Text('Bạn có chắc muốn xoá ghi chú này không?'),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Huỷ'),
+             TextButton(
+            style: TextButton.styleFrom(
+              backgroundColor: const Color(0xFFF4F4F4),
+              foregroundColor: Colors.black,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
             ),
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Huỷ'),
+          ),
             ElevatedButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Xoá'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xffef6820),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
             ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Xoá'),
+          ),
           ],
         );
       },
@@ -189,7 +229,7 @@ class _NotePageState extends State<NotePage> {
           backgroundColor: Colors.white,
           elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.orange),
+            icon: const Icon(Icons.arrow_back_ios_new, color: Color(0xFFEF6820)),
             onPressed: () => context.go(AppRoutes.home),
           ),
           titleSpacing: 0,
@@ -199,9 +239,8 @@ class _NotePageState extends State<NotePage> {
             child: const Text(
               'Ghi chú',
               style: TextStyle(
-                color: Colors.orange,
-                fontWeight: FontWeight.w600,
-                fontSize: 18,
+                color: Color(0xFFEF6820),
+                fontSize: 25,
               ),
             ),
           ),
@@ -245,17 +284,19 @@ class _NotePageState extends State<NotePage> {
         final note = _notes[index];
         return GestureDetector(
           onTap: () => _onNoteTap(note),
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF4F4F4),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end, // canh thời gian bên phải
+            children: [
+              // Ô chứa nội dung ghi chú
+              Container(
+                width: double.infinity,
+                margin: const EdgeInsets.only(bottom: 4),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4F4F4),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
                   note.content,
                   style: const TextStyle(
                     fontSize: 15,
@@ -263,16 +304,20 @@ class _NotePageState extends State<NotePage> {
                     height: 1.4,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Text(
+              ),
+
+              // Thời gian nằm riêng dưới bên phải
+              Padding(
+                padding: const EdgeInsets.only(right: 4, bottom: 12),
+                child: Text(
                   DateFormat('HH:mm dd/MM/yyyy').format(note.createdAt),
                   style: const TextStyle(
                     fontSize: 12,
                     color: Colors.grey,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         );
       },
