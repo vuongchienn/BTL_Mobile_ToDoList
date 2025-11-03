@@ -1113,7 +1113,6 @@ Future<void> _showSearchHistoryBottomSheet(BuildContext context) async {
                           'Lịch sử tìm kiếm',
                           style: TextStyle(
                             fontSize: 18,
-                            fontWeight: FontWeight.bold,
                             color: Color(0xFFEF6820),
                           ),
                         ),
@@ -1166,7 +1165,6 @@ Future<void> _showSearchHistoryBottomSheet(BuildContext context) async {
                             'Kết quả gần đây',
                             style: TextStyle(
                               fontSize: 16,
-                              fontWeight: FontWeight.w600,
                               color: Colors.black87,
                             ),
                           ),

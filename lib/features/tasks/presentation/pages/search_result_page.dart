@@ -242,9 +242,9 @@ Future<void> _showEditBottomSheet(TaskEntity task) async {
       appBar: AppBar(
         title: Text(
           'Kết quả: "${widget.keyword}"',
-          style: const TextStyle(color: Colors.orange),
+          style: const TextStyle(color: Color(0xFFEF6820)),
         ),
-        iconTheme: const IconThemeData(color: Colors.orange),
+        iconTheme: const IconThemeData(color: Color(0xFFEF6820)),
         backgroundColor: Colors.white,
       ),
       body: _isLoading
