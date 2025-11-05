@@ -357,7 +357,7 @@ void _showUpdateTaskGroupDialog(TaskGroupModel group) {
                 title: const Text('Xóa', style: TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.w500)),
                 onTap: () {
                   Navigator.pop(context);
-                  _deleteTaskGroup(group.id);
+                  _confirmAndDeleteTaskGroup(group.id);
                 },
               ),
             ],
