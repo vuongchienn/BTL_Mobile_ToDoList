@@ -22,7 +22,7 @@ import '/features/tasks/presentation/pages/search_result_page.dart';
 
 class AppGoRouter {
   static final GoRouter appRouter = GoRouter(
-    initialLocation: AppRoutes.forgotPassword,
+    initialLocation: AppRoutes.login,
     debugLogDiagnostics: true,
     redirect: (context, state) async {
         final token = await AuthStorage.getToken();
