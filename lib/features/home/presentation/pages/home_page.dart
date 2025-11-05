@@ -512,7 +512,7 @@ void _showTagOptions(TagModel tag) {
             title: const Text('Xóa'),
             onTap: () {
               Navigator.pop(context);
-              _deleteTag(tag.id);
+              _confirmAndDeleteTag(tag.id);
             },
           ),
         ],
